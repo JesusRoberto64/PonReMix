@@ -33,4 +33,5 @@ func _process(delta):
 	$Paddle1.position.y = clamp($Paddle1.position.y,$Paddle1.get_rect().size.y/4,get_viewport().size.y-$Paddle1.get_rect().size.y/4)
 	$Paddle2.position.y = $Paddle1.position.y # copia la posicion de otro
 	
+	
 

@@ -12,6 +12,8 @@ onready var collPoint = get_parent().get_node("collred")
 
 var genTimer = 0.0
 
+onready var blocs = get_parent().get_node("Blocs")
+
 func _process(delta):
 	if position.x < 0.0 - get_rect().size.x/2: 
 		genTimer += delta
@@ -33,6 +35,24 @@ func _process(delta):
 		paddle_Collision(Paddle1,prevPoint,Paddle1.position.x + offsetColl)
 		pass
 	
+	#Check collisions for Boings
+	for i in get_parent().get_node("Boings").get_children():
+		var radDist = (get_rect().size.x/2) + (i.get_rect().size.x/2) 
+		var posDist = position.distance_to(i.position)
+		if posDist <= radDist and i.get_rect().has_point(position - i.position):
+			var angle = position.angle_to_point(i.position)
+			dirY = sin(angle) + randf()
+			dirX = -dirX
+			vel += 10
+		pass
+	
+	# check blocs collision
+	var row 
+	var col
+	if blocs.Blocs_Matrix[row][col] != null:
+		collPoint.position = position
+		pass
+	
 	#limite de piso y suelo
 	if abs(position.y - get_viewport().size.y/2) > get_viewport().size.y/2 - (get_rect().size.y/2):
 		dirY = dirY*-1
@@ -48,7 +68,9 @@ func _process(delta):
 		dirX = -dirX
 
 func paddle_Collision(paddle, _prev_pos: Vector2, _intersect_X: float):
-	if dirX > -1: return # si no es menos que cero entonces no corremos todo el >>
+	if dirX > -1: 
+		print("no pasa", randi())
+		return # si no es menos que cero entonces no corremos todo el >>
 	#código es tomar la direccion en la que se va osea solo hacia la izquierda en negativo
 	var Y = get_Y_intersec_Dist(position,_prev_pos,_intersect_X)# la formula para tomar el >>
 	#valor de y cuando x = _intersect_X
@@ -65,7 +87,7 @@ func paddle_Collision(paddle, _prev_pos: Vector2, _intersect_X: float):
 		dirX = -dirX# Cambio de la dierccion horizontal
 		vel += 25 # sumar la velocidad al golpear
 		position = Vector2(_intersect_X,Y)# regresar al punto de colision 
-		collPoint.position = Vector2(_intersect_X,Y)# test del la colision
+		#collPoint.position = Vector2(_intersect_X,Y)# test del la colision
 		pass
 	pass
 
@@ -75,4 +97,7 @@ func get_Y_intersec_Dist(_pos: Vector2,_prev_Pos:Vector2 ,_intersect_X:float) ->
 	return m*(_intersect_X - _pos.x) + _pos.y# return the formula to get the "y" in >>
 	#Vector2(_intetsect_X,y)
 
-
+func get_Area_Bloc_Matrix(_size, _axis:float) -> int:
+	var axis = int(_axis)
+	var modi = axis%_size
+	return (axis-modi)/_size
