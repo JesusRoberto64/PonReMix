@@ -1,28 +1,28 @@
 extends Sprite
 
+var STATE = 1
+
 var dirY = 1
 var dirX = 1
 var vel = 200
 
-onready var Paddle1 = get_parent().get_node("Paddle1")
-onready var Paddle2 = get_parent().get_node("Paddle2")
+onready var Paddle1 = owner.get_node("Paddle1")
+onready var Paddle2 = owner.get_node("Paddle2")
+
+onready var Boings = owner.get_node("Boings")
 
 onready var offsetColl = (get_rect().size.x/2) #+ Paddle1.get_rect().size.x/2
-onready var collPoint = get_parent().get_node("collred")
-
+onready var collPoint = owner.get_node("collred")
 var genTimer = 0.0
-
-onready var blocs = get_parent().get_node("Blocs")
+onready var blocs = owner.get_node("Blocs")
 
 func _process(delta):
+	if STATE == 1: return
 	if position.x < 0.0 - get_rect().size.x/2: 
-		genTimer += delta
-		if genTimer > 1.0:
-			position = Vector2(get_viewport().size.x/2 + (100),get_viewport().size.y/2)
-			vel = 200
-			dirX = -1
-			genTimer = 0.0
+		STATE = 1
+		owner.catch_Ball(self)
 		return
+	
 	var mov = Vector2(dirX,dirY).normalized()
 	var prevPoint = position
 	position = position + mov*delta*vel
@@ -36,7 +36,7 @@ func _process(delta):
 		pass
 	
 	#Check collisions for Boings
-	for i in get_parent().get_node("Boings").get_children():
+	for i in Boings.get_children():
 		var radDist = (get_rect().size.x/2) + (i.get_rect().size.x/2) 
 		var posDist = position.distance_to(i.position)
 		if posDist <= radDist and i.get_rect().has_point(position - i.position):
@@ -46,25 +46,34 @@ func _process(delta):
 			vel += 10
 		pass
 	
-	# check blocs collision
-	var row 
-	var col
-	if blocs.Blocs_Matrix[row][col] != null:
-		collPoint.position = position
-		pass
-	
-	#limite de piso y suelo
-	if abs(position.y - get_viewport().size.y/2) > get_viewport().size.y/2 - (get_rect().size.y/2):
-		dirY = dirY*-1
-		position.y = clamp(position.y,(get_rect().size.y/2),get_viewport().size.y - (get_rect().size.y/2))
+	#limite de piso y suelo en la misma medida
+#	if abs(position.y - get_viewport().size.y/2) > get_viewport().size.y/2 - (get_rect().size.y/2):
+#		dirY = dirY*-1
+#		position.y = clamp(position.y,(get_rect().size.y/2),get_viewport().size.y - (get_rect().size.y/2))
 	
 	# Para ambas paredes verticales
 #	if abs(position.x - get_viewport().size.x/2) > get_viewport().size.x/2 - (get_rect().size.x/2):
 #		dirX = -dirX
 #		position.x = clamp(position.x,(get_rect().size.x/2),get_viewport().size.x - (get_rect().size.x/2))
 	
+	#Limite superior e inferior 
+	if position.y < get_rect().size.y/2:
+		position.y = get_rect().size.y/2
+		dirY = dirY*-1
+	if position.y > get_viewport().size.y - (get_rect().size.y/2) - 16:#el 16 para espaci del riel
+		position.y = get_viewport().size.y - (get_rect().size.y/2) - 16
+		dirY = dirY*-1
+	
 	#Para la pared derecha
 	if position.x > get_viewport().size.x - get_rect().size.x/2:
+		position.x = get_viewport().size.x - get_rect().size.x/2
+		dirX = -dirX
+	
+	# Check blocs collision
+	var blocArea = get_Area_Bloc_Matrix(blocs.blocWidth,blocs.blocHeight)
+	if blocs.Blocs_Matrix[blocArea.x][blocArea.y] != null:
+		collPoint.position = position
+		blocs.bloc_Hitted(blocArea.x,blocArea.y)
 		dirX = -dirX
 
 func paddle_Collision(paddle, _prev_pos: Vector2, _intersect_X: float):
@@ -97,7 +106,19 @@ func get_Y_intersec_Dist(_pos: Vector2,_prev_Pos:Vector2 ,_intersect_X:float) ->
 	return m*(_intersect_X - _pos.x) + _pos.y# return the formula to get the "y" in >>
 	#Vector2(_intetsect_X,y)
 
-func get_Area_Bloc_Matrix(_size, _axis:float) -> int:
-	var axis = int(_axis)
-	var modi = axis%_size
-	return (axis-modi)/_size
+func get_Area_Bloc_Matrix(_wide,_height) -> Vector2:
+	var x = int(position.x)
+	var mod = int(x)%_wide
+	var row = (x - mod)/_wide
+	
+	var y = int(position.y)
+	mod = int(y)%_height
+	var colunm = (y - mod)/_height
+	return Vector2(row,colunm)
+
+func launch_Force(force):
+	if force < 200: force = 200
+	STATE = 0
+	dirX = -1
+	vel = force
+	dirY = 0
